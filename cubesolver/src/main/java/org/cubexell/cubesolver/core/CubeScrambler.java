@@ -21,24 +21,24 @@ public class CubeScrambler {
 	}
 
 	public String[] getScramble(int numMoves) {
-		//TODO generate a random scramble with numMoves moves
-		//TODO ensure that no repetition of the turns with the same face, because that could be simplified into one turn
+		String[] scramble = new String[numMoves];
+		scramble[0] = randomScrambleMove();
 
-
-
-
-
-
-		/*hint: declare and initialize a String array with length numMoves. Then, generate the first random move
-		by calling randomScrambleMove(). Next, use a for loop to go through the rest of the moves, but resetting each
-		iteration if the face turned by a turn is the same as the previous turn (che`ck using getFace(String move)).
-		Finally, return complete sequence of random moves.
-
-		 */
+		for(int i=1; i<numMoves; i++){
+			char prevMoveFace = getFace(scramble[i-1]);
+			String move = randomScrambleMove();
+			char moveFace = getFace(move);
+			while(moveFace == prevMoveFace) {
+				move = randomScrambleMove();
+				moveFace = getFace(move);
+			}
+			scramble[i] = move;
+		}
+		return scramble;
 	}
 
 	public char[][][] scramble(String[] scrambleMoves){
-	    Cube cube = new Cube(Helper.createSolvedCubeColors());
+		Cube cube = new Cube(Helper.createSolvedCubeColors());
 		cube.simulateMoves(scrambleMoves);
 		if(robot!=null){
 			robot.executeMoves(scrambleMoves);
@@ -47,13 +47,13 @@ public class CubeScrambler {
 	}
 
 	public char[][][] randomScramble(){
-	    Cube cube = new Cube(Helper.createSolvedCubeColors());
+		Cube cube = new Cube(Helper.createSolvedCubeColors());
 		String[] scrambleMoves = getScramble(20);
-	    cube.simulateMoves(scrambleMoves);
+		cube.simulateMoves(scrambleMoves);
 		if(robot!=null){
 			robot.executeMoves(scrambleMoves);
 		}
 		return cube.getCubeColors();
 	}
-	
+
 }
