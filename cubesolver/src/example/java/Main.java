@@ -15,7 +15,7 @@ import java.util.concurrent.locks.LockSupport;
 
 
 public class Main {
-	public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         Scanner scanner = new Scanner(System.in);
         String method = "B";
         String isScramblingCube = "Y";
@@ -23,9 +23,7 @@ public class Main {
 
         String cubeSolvingMethod;
 
-
-
-        if (args.length > 2 && args[0] != null){
+        if (args.length > 2 && args[0] != null) {
             method = args[0];
             isScramblingCube = args[1];
             if (args[2] != null){
@@ -53,7 +51,6 @@ public class Main {
         Motor frontMotor = new RohsStepperMotor(24, 25, 8, 7);
         Motor backMotor = new RohsStepperMotor(12, 16, 20, 21);
 
-         //DON'T USE, ONLY USE IF YOU AREN'T USING PCB, AND MANUALLY WIRING GPIOS
 //        Motor upMotor = new RohsStepperMotor (24, 25, 8, 7);
 //		Motor downMotor = new RohsStepperMotor (1, 12, 16, 20);
 //		Motor rightMotor = new RohsStepperMotor (21, 26, 19, 13);
@@ -95,25 +92,26 @@ public class Main {
 
         CubeScrambler scrambler = new CubeScrambler(robot);
 
-		Cube cube;
+        Cube cube;
 
         CubeColorInspector inspector = new OpenCvRaspberryPiCamera(robot, autoTune);
         char[][][] cubeColors;
 
-		//String[] scrambleMoves = {"Ri","Bi","Ri","F2","L","F2","B","R","Ui","R","Fi","U","Li","B","L2","U2","B2","F2","L2","F"};
+        //String[] scrambleMoves = {"Ri","Bi","Ri","F2","L","F2","B","R","Ui","R","Fi","U","Li","B","L2","U2","B2","F2","L2","F"};
 
         if ("Y".equalsIgnoreCase(isScramblingCube)) {
-			String[] scrambleMoves = scrambler.getScramble(20);
-			System.out.println("------Scramble-------------");
-			for (String scrambleMove : scrambleMoves) {
-				System.out.print(scrambleMove + ",");
-			}
+            String[] scrambleMoves = scrambler.getScramble(20);
+            System.out.println("------Scramble-------------");
+            for (String scrambleMove : scrambleMoves) {
+                System.out.print(scrambleMove + ",");
+            }
             cubeColors = scrambler.scramble(scrambleMoves);
             Thread.sleep(5000);
         }
-		else {
+        else {
             Process preview = new ProcessBuilder(
-                    "libcamera-hello",
+                    "rpicam-hello",
+                    "--qt-preview",
                     "-t", "0"
             ).start();
             System.out.println("Rotate polarizer to minimize glare. Press Enter to proceed...");
@@ -142,14 +140,14 @@ public class Main {
         if ("Beginner".equalsIgnoreCase(cubeSolvingMethod)) {
             solver = new BeginnerMethod();
         }
-		else if ("Kociemba".equalsIgnoreCase(cubeSolvingMethod)) {
+        else if ("Kociemba".equalsIgnoreCase(cubeSolvingMethod)) {
             solver = new KociembaAlgorithm();
         }
-		else {
+        else {
             solver = new OldPochmannMethod();
         }
 
-		String[] solution = solver.solve(cubeColors);
+        String[] solution = solver.solve(cubeColors);
 
 
 

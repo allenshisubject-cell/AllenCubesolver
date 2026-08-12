@@ -19,7 +19,6 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import javax.imageio.ImageIO;
-import java.security.InvalidKeyException;
 import java.util.*;
 import java.util.List;
 
@@ -60,14 +59,13 @@ public class OpenCvRaspberryPiCamera implements CubeColorInspector{
         }
 
         captureImage();
-
-        startDrawing();//draws and writes helpful info in the image file for tuning purposes
-        drawTuningGrid(200);//draws helpful tuning grid for rectangle coordinates
+        startDrawing();
+        drawTuningGrid(200);
 
         char[][][] cubeColors = new char[6][3][3];//creates a blank matrix of the cube
 
         System.out.println("Back Face");//tells which face the following colors are for
-        char[][] backFace = inspectBackFace('B');
+        char[][] backFace = inspectBackFace('B');//the 'B' is the center color, and it gets the colors of the rest of the pieces on the back face
         System.out.println();
 
         System.out.println("Left Face");
@@ -199,10 +197,10 @@ public class OpenCvRaspberryPiCamera implements CubeColorInspector{
     public char[][] inspectBackFace(char center) {
         face = 0;
         piece = 0;
-        convertFaceColorToIndex(center);
+        color = convertFaceColorToIndex(center);
         return new char[][]{//returns a 2 dimensional array of the colors of the back face
-                {
-                        findColor(990+offsetX,730+offsetY,70,45),//gets the color of the top-left piece of the back face. coordinates are of the top-left corner, width, and height.
+                {//gets the color of the top-left piece of the back face. coordinates are of the top-left corner, width, and height.
+                        findColor(990+offsetX,730+offsetY,70,45),
                         findColor(1160+offsetX,550+offsetY,175,60),
                         findColor(1550+offsetX,200+offsetY,150,100),
                 },
@@ -222,7 +220,7 @@ public class OpenCvRaspberryPiCamera implements CubeColorInspector{
     public char[][] inspectLeftFace(char center) {
         face = 1;
         piece = 0;
-        convertFaceColorToIndex(center);
+        color = convertFaceColorToIndex(center);
         return new char[][]{
                 {
                         findColor(2000+offsetX,225+offsetY,150,100),
@@ -245,7 +243,7 @@ public class OpenCvRaspberryPiCamera implements CubeColorInspector{
     public char[][] inspectDownFace(char center) {
         face = 2;
         piece = 0;
-        convertFaceColorToIndex(center);
+        color = convertFaceColorToIndex(center);
         return new char[][]{
                 {
                         findColor(2560+offsetX,2065+offsetY,250,80),
@@ -268,19 +266,25 @@ public class OpenCvRaspberryPiCamera implements CubeColorInspector{
 
     public void captureImage() {
         try {
-            ProcessBuilder processBuilder = new ProcessBuilder("libcamera-jpeg", "-o", outputImage, "--width", Integer.toString(imageWidth), "--height", Integer.toString(imageHeight), "--timeout", "1000");//this is basically running a command in terminal that takes a picture with these peramiters.
+            ProcessBuilder processBuilder = new ProcessBuilder(
+                    "rpicam-jpeg",
+                    "-o", outputImage,
+                    "--width", Integer.toString(imageWidth),
+                    "--height", Integer.toString(imageHeight),
+                    "--timeout", "1000"
+            );
 
             Process process = processBuilder.start();
 
             int exitCode = process.waitFor();
 
-            if (exitCode == 0) {//makes sure it was able to take the picture
+            if (exitCode == 0) {
                 System.out.println("Image captured successfully: " + outputImage);
             } else {
                 System.out.println("Error capturing image, exit code: " + exitCode);
             }
         } catch (IOException | InterruptedException e) {
-            e.printStackTrace();//stops program if error occurs and shows where it happened
+            e.printStackTrace();
         }
     }
 
@@ -349,13 +353,13 @@ public class OpenCvRaspberryPiCamera implements CubeColorInspector{
 
         UByteIndexer indexer = labSquare.createIndexer();//creates an indexer that allows us to access the lab values of each pixel
 
-        for (int row = 0; row < labSquare.rows(); row ++) {
-            for (int col = 0; col < labSquare.cols(); col ++) {
-                int pixelL = indexer.get(row, col, 0);
+        for (int row = 0; row < labSquare.rows(); row++) {//goes through every row
+            for (int col = 0; col < labSquare.cols(); col++) {//goes through every pixel in that row
+                int pixelL = indexer.get(row, col, 0);//gets the L value of that pixel
                 int pixelA = indexer.get(row, col, 1);
                 int pixelB = indexer.get(row, col, 2);
 
-                listOfL.add(pixelL);
+                listOfL.add(pixelL);//add the value to the list
                 listOfA.add(pixelA);
                 listOfB.add(pixelB);
 
@@ -363,13 +367,13 @@ public class OpenCvRaspberryPiCamera implements CubeColorInspector{
 
         }
 
-        int medianL = getListMedian(listOfL);
+        int medianL = getListMedian(listOfL);//finds the median l value of all the pixels
         int medianA = getListMedian(listOfA);
         int medianB = getListMedian(listOfB);
 
         System.out.println("Median values: L: " + medianL + " A: " + medianA + " B: " + medianB);//prints out the final median values for tuning
 
-        char medianLabColor = classifyColorDeltaELab(medianL, medianA, medianB);
+        char medianLabColor = classifyColorDeltaELab(medianL, medianA, medianB);//gets what color the values represent
 
         System.out.println("Median color is: " + medianLabColor);//prints out the color
         System.out.println();
@@ -379,6 +383,7 @@ public class OpenCvRaspberryPiCamera implements CubeColorInspector{
     }
 
     public static char classifyColorDeltaELab(int l, int a, int b){
+        // Real world values
         Map<Character, int[]> referenceColors = new HashMap<>();//this initializes a map that matches characters to an array of unique LAB values. Each character represents one of the colors on the cube, and each color may have multiple characters and therfore LAB values that deal with different lighting conditions.
 
         if(autoTune){
@@ -396,14 +401,15 @@ public class OpenCvRaspberryPiCamera implements CubeColorInspector{
             referenceColors.put('O', realReferenceColors[face][piece][LEFT_FACE_INDEX]);
         }
 
-        char bestColor = 'U';//Set to U so that if something goes wrong and no color is detected, U is returned to signify unknown
+        char bestColor = 'U';//Set to U so that if something goes wrong and no color is detected, U is returned to signify unkown
         double minDeltaE = Double.MAX_VALUE;//sets it to the maximum possible value that can be stored in a double so that it doesn't end up being less than the minimum distance from the reference color
+
         for(Map.Entry<Character, int[]> entry : referenceColors.entrySet()){//goes through all reference colors
             int[] ref = entry.getValue();//gets the LAB values from the reference color
-            double deltaE = Math.sqrt(Math.pow(l - ref[0]/*TODO add the l value of the reference value*/, 2)/5 + Math.pow(a - ref[1]/*TODO add the a value of the reference value*/, 2) + Math.pow(b - ref[2]/*TODO add the b value of the reference value*/, 2));//uses the pythagorean theorem to calculate the distance of the actual color to the reference color
+            double deltaE = Math.sqrt(Math.pow(l - ref[0], 2)/5 + Math.pow(a - ref[1], 2) + Math.pow(b - ref[2], 2));//uses the pythagorean theorem to calculate the distance of the actual color to the reference color
             if (deltaE < minDeltaE){//if the distance is the least that has been tested so far
-                minDeltaE = deltaE;
-                bestColor = entry.getKey();//setsthe new color as the best color so far
+                minDeltaE = deltaE;//sets the new distance as the minimum
+                bestColor = entry.getKey();//sets the new color as the best color so far
             }
         }
 
